@@ -3,7 +3,7 @@ Aop = {
         var originalFn = fnObj[fnName];
         fnObj[fnName] = function () {
             var targetContext = {};
-            advice.call(targetContext, {fn: originalFn});
+            advice.call(targetContext, {fn: originalFn, args: arguments});
         };
     }
 };
