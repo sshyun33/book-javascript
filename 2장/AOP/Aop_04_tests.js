@@ -17,7 +17,7 @@
     executionPoints = [];
 
     argPassingAdvice = function(targetInfo) {
-      return targetInfo.fn.apply(this, targetInfo.args);
+      targetInfo.fn.apply(this, targetInfo.args);
     };
 
     argsToTarget = [];

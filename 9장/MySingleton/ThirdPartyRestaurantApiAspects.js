@@ -1,20 +1,33 @@
-﻿// ThirdParty.restaurantApi()에 getRestaurantsNearConference 멤버를 추가한다
+﻿// getRestaurantsWithinRadius에 메모이제이션 패턴 적용
+var Conference = Conference || {};
+Conference.caches = Conference.caches || {};
+
+Conference.caches.RestaurantsWithinRadiusCache = {};
 
 Aop.around(
- 'restaurantApi',
+  // 반환값을 수정해야 할 함수
+  'restaurantApi',
 
+  // 반환값을 수정하는 함수
   function addMemoizationToGetRestaurantsWithinRadius(targetInfo) {
 
-   var api = Aop.next.call(this, targetInfo);
+    // ThirdParty.restaurantApi()가 반환한 원본 API
+    var api =  Aop.next.call(this, targetInfo);
 
-   Aop.around('getRestaurantsWithinRadius',
-   Aspects.returnValueCache().advice,api);
+    // getRestaurantsWithinRadius 함수를 장식하여 메모이제이션 추가
+    Aop.around('getRestaurantsWithinRadius',
+      Aspects.returnValueCache(Conference.caches.RestaurantsWithinRadiusCache).advice,
+      api);
 
-   return api;
+    // 고친 API를 반환한다
+    return api;
   },
 
+  // 반환값을 수정해야 할 함수의 명칭공간
   ThirdParty
 );
+
+// ThirdParty.restaurantApi()에 getRestaurantsNearConference 멤버 추가
 
 Aop.around(
   // 반환값을 수정해야 할 함수
