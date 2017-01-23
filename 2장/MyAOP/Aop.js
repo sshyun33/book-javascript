@@ -2,8 +2,10 @@ Aop = {
     around: function (fnName, advice, fnObj) {
         var originalFn = fnObj[fnName];
         fnObj[fnName] = function () {
-            var targetContext = {};
-            advice.call(targetContext, {fn: originalFn, args: arguments});
+            return advice.call(this, {fn: originalFn, args: arguments});
         };
+    },
+    next: function(targetInfo) {
+        return targetInfo.fn.apply(this, targetInfo.args);
     }
 };
