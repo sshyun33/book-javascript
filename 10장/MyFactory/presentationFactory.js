@@ -3,18 +3,29 @@ var Conference = Conference || {};
 Conference.presentationFactory = function () {
   'use strict';
   return {
+    // obj 인자의 프로퍼티에 따라
+    // 하나의 Presentation 또는 그 하위 Presentation 중 하나를 생성한다.
     create: function (obj) {
       var baseProperties = ['title', 'presenter'],
         vendorProperties = ['vendor', 'product'],
         allProperties = baseProperties.concat(vendorProperties),
         p,
         ix;
+
       for (p in obj) {
         if (!allProperties.includes(p)) {
           throw new Error(
             Conference.presentationFactory.messages.unexpectedProperty + p);
         }
       }
+
+      for(ix=0; ix<vendorProperties.length; ix++) {
+        if(obj.hasOwnProperty(vendorProperties[ix])) {
+          return new Conference.VendorPresentation(
+           obj.title, obj.presenter, obj.vendor, obj.product);
+        }
+      }
+      return new Conference.Presentation(obj.title, obj.presenter);
     }
   };
 };
