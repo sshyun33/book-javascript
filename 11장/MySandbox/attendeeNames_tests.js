@@ -17,7 +17,7 @@ describe("Conference.WidgetTools.attendeeName", function () {
 
   afterEach(function () {
     // 테스트할 때마다 post가 호출되지 않았는지 확인한다.
-    expect(attendeeWebApi).not.haveBeenCalled();
+    expect(attendeeWebApi.post).not.toHaveBeenCalled();
   });
 
   it("주어진 sandbox 객체에 자신을 추가한다", function () {
