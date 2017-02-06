@@ -13,13 +13,19 @@ Conference.transportScheduler = function (auditService, transportCompanyFactory)
 
   return {
     scheduleTransportation: function scheduleTransportation(transportDetails) {
-     if (!transportDetails) {
-       throw new Error(Conference.transportScheduler.messages.noDetails);
-     }
+      if (!transportDetails) {
+        throw new Error(Conference.transportScheduler.messages.noDetails);
+      }
 
-     var company;
+      var company;
 
-     company = transportCompanyFactory.create(transportDetails);
+      company = transportCompanyFactory.create(transportDetails);
+
+      return company.schedulePickup(transportDetails)
+        .then(function successful(confirmation) {
+          auditService.logReservation(transportDetails, confirmation);
+          return confirmation;
+        });
     }
   };
 };

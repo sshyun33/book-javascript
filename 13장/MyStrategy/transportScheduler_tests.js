@@ -21,7 +21,9 @@ describe('Conference.transportScheduler', function () {
     var scheduler,
       auditService,
       companyFactory,
-      testDetails;
+      testDetails,
+      fakeCompany,
+      confirmationNumber;
 
     beforeEach(function () {
       // transportScheduler 인스턴스에 주입할 의존성 인스턴스를 생성한다.
@@ -35,6 +37,19 @@ describe('Conference.transportScheduler', function () {
       // 이 테스트에서 companyFactory.create(transportDetails)는 어차피 가짜라서
       // testDetails는 진짜 transportDetails 객체의 인스턴스일 필요가 없다
       testDetails = {};
+
+      confirmationNumber = "ABC-123-XYZ";
+
+      // schedulePickup 함수를 구현한 가짜 운송 모듈을 생성한다.
+      // 반환된 프라미스는 기본적으로 confirmationNumber로 귀결된다.
+      // 버림 프라미스가 필요할 경우 schedulePickup을 감시하면 된다.
+      fakeCompany = {
+        schedulePickup: function schedulPickup(transportDetails) {
+          return new Promise(function (resolve, reject) {
+            resolve(confirmationNumber);
+          });
+        }
+      };
     });
 
     it("transportDetails 인자가 누락되면 예외를 던진다", function () {
@@ -50,6 +65,99 @@ describe('Conference.transportScheduler', function () {
         scheduler.scheduleTransportation(testDetails);
       }).toThrowError(companyFactoryError);
     });
+
+    it("회사 팩토리에서 회사 모듈을 가져온다", function () {
+      spyOn(companyFactory, "create").and.returnValue(fakeCompany);
+
+      scheduler.scheduleTransportation(testDetails);
+
+      expect(companyFactory.create).toHaveBeenCalledWith(testDetails);
+    });
+
+    it("회사의 schedulePickup 함수를 실행한다", function () {
+      spyOn(companyFactory, "create").and.returnValue(fakeCompany);
+
+      // fakeCompany는 귀결 프라미스를 반환하도록 설정한다.
+      // 그냥 호출 후 지나치면 된다(call through).
+      spyOn(fakeCompany, "schedulePickup").and.callThrough();
+
+      scheduler.scheduleTransportation(testDetails);
+
+      expect(fakeCompany.schedulePickup).toHaveBeenCalledWith(testDetails);
+    });
+
+    describe("스케쥴링 성공!", function () {
+      beforeEach(function () {
+        spyOn(companyFactory, "create").and.returnValue(fakeCompany);
+
+      });
+
+      it("반환된 확인 번호로 귀결된다", function (done) {
+        scheduler.scheduleTransportation(testDetails)
+          .then(function resolved(confirmation) {
+            expect(confirmation).toEqual(confirmation);
+            done();
+          }, function rejected(reason) {
+            expect("버려졌을 리 없다").toBe(false);
+            done();
+          });
+      });
+
+      it("집계 서비스로 로깅한다", function (done) {
+        spyOn(auditService, "logReservation");
+
+        scheduler.scheduleTransportation(testDetails)
+          .then(function resolved(confirmation) {
+            expect(auditService.logReservation)
+              .toHaveBeenCalledWith(testDetails, confirmation);
+            done();
+          }, function rejected(reason) {
+            expect("버려졌을 리 없다").toBe(false);
+            done();
+          });
+      });
+    });
+
+    describe("스케쥴링 실패!", function () {
+      var rejectionReason;
+
+      beforeEach(function () {
+        spyOn(companyFactory, "create").and.returnValue(fakeCompany);
+
+        rejectionReason = "이런 이유로 버립니다";
+
+        // schedulePickup이 버림 프라미스를 반환하도록 설정한다.
+        return spyOn(fakeCompany, "schedulePickup")
+          .and.returnValue(new Promise(function (resolve, reject) {
+            reject(rejectionReason);
+          }));
+      });
+
+      it("버림 프라미스가 호출부로 흘러가게 한다", function (done) {
+        scheduler.scheduleTransportation(testDetails)
+          .then(function resolved(confirmation) {
+            expect("귀결됐을 리 없다").toBe(false);
+            done();
+          }, function rejected(reason) {
+            expect(reason).toEqual(rejectionReason);
+            done();
+          });
+      });
+
+      it("집계 서비스로 아무것도 로깅하지 않는다", function (done) {
+        spyOn(auditService, "logReservation");
+
+        scheduler.scheduleTransportation(testDetails)
+          .then(function resolved(confirmation) {
+            expect("귀결됐을 리 없다").toBe(false);
+            done();
+          }, function rejected(reason) {
+            expect(auditService.logReservation).not.toHaveBeenCalled();
+            done();
+          });
+      });
+    })
+
   });
 });
 
